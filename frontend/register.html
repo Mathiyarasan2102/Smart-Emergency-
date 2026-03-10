@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - BloodConnect</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="nav-brand"><i class="fa-solid fa-droplet"></i> BloodConnect</a>
+        <ul class="nav-links" id="nav-links"></ul> <!-- Handled by JS -->
+    </nav>
+
+    <div class="container">
+        <div class="auth-container">
+            <h2>Registration Portal</h2>
+            <div id="alert-box" class="alert"></div>
+
+            <form id="register-form">
+                <div class="form-group">
+                    <label>Join As</label>
+                    <select id="role" class="form-control" onchange="toggleFields()" required>
+                        <option value="donor">Blood Donor</option>
+                        <option value="hospital">Hospital/Clinic</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="username" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="password" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label>City/Location</label>
+                    <input type="text" id="city" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Contact Number</label>
+                    <input type="text" id="contact" class="form-control" required>
+                </div>
+
+                <!-- Donor Specific Fields -->
+                <div id="donor-fields">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="full_name" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Blood Group</label>
+                        <select id="blood_group" class="form-control">
+                            <option value="A+">A+</option>
+                            <option value="A-">A-</option>
+                            <option value="B+">B+</option>
+                            <option value="B-">B-</option>
+                            <option value="O+">O+</option>
+                            <option value="O-">O-</option>
+                            <option value="AB+">AB+</option>
+                            <option value="AB-">AB-</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Hospital Specific Fields -->
+                <div id="hospital-fields" class="hidden">
+                    <div class="form-group">
+                        <label>Hospital Name</label>
+                        <input type="text" id="hospital_name" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Full Address</label>
+                        <textarea id="address" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">Register Account</button>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Smart Emergency Blood & Donor Management System.</p>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script>
+        function toggleFields() {
+            const role = document.getElementById('role').value;
+            if (role === 'donor') {
+                document.getElementById('donor-fields').classList.remove('hidden');
+                document.getElementById('hospital-fields').classList.add('hidden');
+            } else {
+                document.getElementById('donor-fields').classList.add('hidden');
+                document.getElementById('hospital-fields').classList.remove('hidden');
+            }
+        }
+
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const role = document.getElementById('role').value;
+            const payload = {
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value,
+                role: role,
+                city: document.getElementById('city').value,
+                contact_number: document.getElementById('contact').value
+            };
+
+            if (role === 'donor') {
+                payload.full_name = document.getElementById('full_name').value;
+                payload.blood_group = document.getElementById('blood_group').value;
+            } else {
+                payload.hospital_name = document.getElementById('hospital_name').value;
+                payload.address = document.getElementById('address').value;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert('Registration Successful! Redirecting to login...', 'success');
+                    setTimeout(() => window.location.href = 'login.html', 2000);
+                } else {
+                    showAlert(data.error || 'Registration failed', 'error');
+                }
+            } catch (error) {
+                showAlert('Connection error', 'error');
+            }
+        });
+    </script>
+</body>
+
+</html>

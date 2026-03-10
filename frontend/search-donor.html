@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Donors - BloodConnect</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="nav-brand"><i class="fa-solid fa-droplet"></i> BloodConnect</a>
+        <ul class="nav-links" id="nav-links"></ul>
+    </nav>
+
+    <div class="container">
+        <h2
+            style="color: var(--primary-red); margin-bottom: 2rem; border-bottom: 2px solid var(--gray-light); padding-bottom:1rem;">
+            Search Available Donors</h2>
+
+        <div class="card" style="margin-bottom: 2rem; display:flex; gap:1rem; align-items:flex-end;">
+            <div style="flex:1;">
+                <label>Blood Group</label>
+                <select id="search-bg" class="form-control">
+                    <option value="">Any</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                </select>
+            </div>
+            <div style="flex:1;">
+                <label>City/Location</label>
+                <input type="text" id="search-city" class="form-control" placeholder="Search by city...">
+            </div>
+            <button onclick="fetchDonors()" class="btn btn-primary"
+                style="height: fit-content; margin-bottom: 0.1rem;">Search</button>
+        </div>
+
+        <div class="card">
+            <h3>Matching Donors</h3>
+            <div style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Blood Group</th>
+                            <th>Location</th>
+                            <th>Contact</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="donor-list">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+            <p id="no-results" class="hidden" style="text-align: center; padding: 2rem; color: #666;">No available
+                donors found matching your criteria.</p>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Smart Emergency Blood & Donor Management System.</p>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', fetchDonors);
+
+        async function fetchDonors() {
+            const bg = document.getElementById('search-bg').value;
+            const city = document.getElementById('search-city').value;
+            let query = `${API_URL}/donors/all?`;
+            if (bg) query += `blood_group=${encodeURIComponent(bg)}&`;
+            if (city) query += `city=${encodeURIComponent(city)}`;
+
+            try {
+                const response = await fetch(query);
+                const donors = await response.json();
+
+                const tbody = document.getElementById('donor-list');
+                const noResults = document.getElementById('no-results');
+                tbody.innerHTML = '';
+
+                if (donors.length === 0) {
+                    noResults.classList.remove('hidden');
+                } else {
+                    noResults.classList.add('hidden');
+                    donors.forEach(donor => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td><strong>${donor.full_name}</strong></td>
+                                <td><span class="badge badge-danger">${donor.blood_group}</span></td>
+                                <td>${donor.city}</td>
+                                <td>${donor.contact_number}</td>
+                                <td><span class="badge badge-success">Available</span></td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to fetch donors", error);
+            }
+        }
+    </script>
+</body>
+
+</html>

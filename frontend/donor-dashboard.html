@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donor Dashboard - BloodConnect</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="nav-brand"><i class="fa-solid fa-droplet"></i> BloodConnect</a>
+        <ul class="nav-links" id="nav-links"></ul>
+    </nav>
+
+    <div class="container">
+        <h2>Welcome, <span id="donor-name" style="color:var(--primary-red);">Donor</span></h2>
+        <div id="alert-box" class="alert"></div>
+
+        <div class="dashboard-grid">
+            <div class="card">
+                <h3><i class="fa-solid fa-user"></i> My Profile</h3>
+                <p><strong>Blood Group:</strong> <span id="bg-display" class="badge badge-danger"></span></p>
+                <p><strong>City:</strong> <span id="city-display"></span></p>
+                <p><strong>Contact:</strong> <span id="contact-display"></span></p>
+            </div>
+
+            <div class="card">
+                <h3><i class="fa-solid fa-toggle-on"></i> Availability Status</h3>
+                <p>Are you available to donate blood right now?</p>
+                <div style="margin-top: 1rem;">
+                    <button id="btn-available" class="btn btn-primary" onclick="updateStatus(1)">Mark Available</button>
+                    <button id="btn-unavailable" class="btn btn-outline" onclick="updateStatus(0)">Mark
+                        Unavailable</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 2rem;">
+            <h3>Active Emergency Requests <span class="badge badge-danger">Urgent</span></h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Hospital</th>
+                        <th>Location</th>
+                        <th>Required Blood</th>
+                        <th>Urgency</th>
+                    </tr>
+                </thead>
+                <tbody id="urgent-requests">
+                    <!-- Populated by JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Smart Emergency Blood & Donor Management System.</p>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            requireRole(['donor']);
+            loadProfile();
+            loadUrgentRequests();
+        });
+
+        async function loadProfile() {
+            try {
+                const response = await fetch(`${API_URL}/donors/profile`, {
+                    headers: getAuthHeaders()
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('donor-name').textContent = data.full_name;
+                    document.getElementById('bg-display').textContent = data.blood_group;
+                    document.getElementById('city-display').textContent = data.city;
+                    document.getElementById('contact-display').textContent = data.contact_number;
+
+                    // Update UI buttons
+                    if (data.availability_status === 1) {
+                        document.getElementById('btn-available').classList.replace('btn-outline', 'btn-primary');
+                        document.getElementById('btn-unavailable').classList.replace('btn-primary', 'btn-outline');
+                    } else {
+                        document.getElementById('btn-unavailable').classList.replace('btn-outline', 'btn-primary');
+                        document.getElementById('btn-available').classList.replace('btn-primary', 'btn-outline');
+                    }
+                } else {
+                    showAlert('Failed to load profile.', 'error');
+                }
+            } catch (error) {
+                showAlert('Connection error', 'error');
+            }
+        }
+
+        async function updateStatus(status) {
+            try {
+                const response = await fetch(`${API_URL}/donors/availability`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ availability_status: status })
+                });
+
+                if (response.ok) {
+                    showAlert('Availability updated!', 'success');
+                    loadProfile();
+                }
+            } catch (error) {
+                showAlert('Failed to update status', 'error');
+            }
+        }
+
+        async function loadUrgentRequests() {
+            try {
+                const response = await fetch(`${API_URL}/requests/?status=Pending`);
+                if (response.ok) {
+                    const requests = await response.json();
+                    const tbody = document.getElementById('urgent-requests');
+                    tbody.innerHTML = '';
+
+                    requests.forEach(req => {
+                        let urgencyClass = req.urgency_level === 'Critical' ? 'badge-danger' : 'badge-warning';
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${req.hospital_name}</td>
+                                <td>${req.city}</td>
+                                <td><strong style="color:var(--primary-red);">${req.units_required} Units of ${req.blood_group}</strong></td>
+                                <td><span class="badge ${urgencyClass}">${req.urgency_level}</span></td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (e) {
+                console.error('Error fetching requests', e);
+            }
+        }
+    </script>
+</body>
+
+</html>

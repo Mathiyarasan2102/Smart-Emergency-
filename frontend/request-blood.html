@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request Blood - BloodConnect</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="nav-brand"><i class="fa-solid fa-droplet"></i> BloodConnect</a>
+        <ul class="nav-links" id="nav-links"></ul> <!-- Handled by JS -->
+    </nav>
+
+    <div class="container">
+        <div class="auth-container">
+            <h2>Raise Blood Request</h2>
+            <div id="alert-box" class="alert"></div>
+
+            <form id="request-blood-form">
+                <div class="form-group">
+                    <label>Patient Name</label>
+                    <input type="text" id="patient_name" class="form-control" required placeholder="Enter patient name">
+                </div>
+
+                <div class="form-group">
+                    <label>Required Blood Group</label>
+                    <select id="blood_group" class="form-control" required>
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Units Required (Packets/Bags)</label>
+                    <input type="number" id="units_required" class="form-control" required min="1" max="100">
+                </div>
+
+                <div class="form-group">
+                    <label>Urgency Level</label>
+                    <select id="urgency_level" class="form-control" required>
+                        <option value="Normal">Normal (Within 24-48 hrs)</option>
+                        <option value="High">High (Within 6-12 hrs)</option>
+                        <option value="Critical">Critical (Immediate Need)</option>
+                    </select>
+                </div>
+
+                <div style="display:flex; gap:1rem; margin-top:2rem;">
+                    <button type="submit" class="btn btn-primary" style="flex:1;">Submit Emergency Request</button>
+                    <button type="button" class="btn btn-outline"
+                        onclick="window.location.href='hospital-dashboard.html'" style="flex:1;">Cancel Setup</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Smart Emergency Blood & Donor Management System.</p>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            requireRole(['hospital']);
+        });
+
+        document.getElementById('request-blood-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const payload = {
+                patient_name: document.getElementById('patient_name').value,
+                blood_group: document.getElementById('blood_group').value,
+                units_required: parseInt(document.getElementById('units_required').value),
+                urgency_level: document.getElementById('urgency_level').value
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/requests/`, {
+                    method: 'POST',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert('Blood request submitted successfully!', 'success');
+                    setTimeout(() => window.location.href = 'hospital-dashboard.html', 1500);
+                } else {
+                    showAlert(data.error || 'Failed to submit request', 'error');
+                }
+            } catch (error) {
+                showAlert('Connection error', 'error');
+            }
+        });
+    </script>
+</body>
+
+</html>

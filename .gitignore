@@ -1,0 +1,5 @@
+SKILL.md
+.venv/
+__pycache__/
+database/
+get-pip.py

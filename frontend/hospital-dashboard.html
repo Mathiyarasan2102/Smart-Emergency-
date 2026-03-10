@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Dashboard - BloodConnect</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="nav-brand"><i class="fa-solid fa-droplet"></i> BloodConnect</a>
+        <ul class="nav-links" id="nav-links"></ul> <!-- Handled by JS -->
+    </nav>
+
+    <div class="container">
+        <div
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 2px solid var(--gray-light); padding-bottom:1rem;">
+            <h2 style="color: var(--primary-red);">Hospital Portal - <span id="hospital-name"></span></h2>
+            <a href="request-blood.html" class="btn btn-primary"><i class="fa-solid fa-plus"></i> New Blood Request</a>
+        </div>
+
+        <div id="alert-box" class="alert"></div>
+
+        <div class="card" style="margin-top: 2rem;">
+            <h3>Active Blood Requests</h3>
+            <div style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Patient Name</th>
+                            <th>Blood Group</th>
+                            <th>Units Needed</th>
+                            <th>Urgency</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="hospital-requests">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+                <p id="no-requests" class="hidden" style="text-align: center; padding: 2rem; color: #666;">You have no
+                    active blood requests.</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Smart Emergency Blood & Donor Management System.</p>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            requireRole(['hospital']);
+            loadProfile();
+            loadRequests();
+        });
+
+        async function loadProfile() {
+            try {
+                const response = await fetch(`${API_URL}/hospitals/profile`, { headers: getAuthHeaders() });
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('hospital-name').textContent = data.hospital_name;
+                }
+            } catch (error) {
+                console.error("Profile load failed", error);
+            }
+        }
+
+        async function loadRequests() {
+            try {
+                // To keep this simple for the prototype, we fetch all and filter client side. In a real app we'd fetch hospital specific requests securely.
+                const response = await fetch(`${API_URL}/requests/?status=Pending`);
+
+                if (response.ok) {
+                    const requests = await response.json();
+                    const profileRes = await fetch(`${API_URL}/hospitals/profile`, { headers: getAuthHeaders() });
+                    const profileData = await profileRes.json();
+
+                    const myRequests = requests.filter(req => req.hospital_name === profileData.hospital_name);
+
+                    const tbody = document.getElementById('hospital-requests');
+                    const noRequests = document.getElementById('no-requests');
+                    tbody.innerHTML = '';
+
+                    if (myRequests.length === 0) {
+                        noRequests.classList.remove('hidden');
+                    } else {
+                        noRequests.classList.add('hidden');
+                        myRequests.forEach(req => {
+                            let urgencyClass = req.urgency_level === 'Critical' ? 'badge-danger' : 'badge-warning';
+                            tbody.innerHTML += `
+                                <tr>
+                                    <td>${req.patient_name}</td>
+                                    <td><span class="badge badge-danger">${req.blood_group}</span></td>
+                                    <td>${req.units_required}</td>
+                                    <td><span class="badge ${urgencyClass}">${req.urgency_level}</span></td>
+                                    <td>${req.status}</td>
+                                    <td>
+                                        <button onclick="markFulfilled(${req.id})" class="btn btn-outline" style="font-size:0.8rem; padding:0.3rem 0.6rem;">Mark Fulfilled</button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    }
+                }
+            } catch (error) {
+                showAlert('Failed to load requests', 'error');
+            }
+        }
+
+        async function markFulfilled(requestId) {
+            if (confirm("Are you sure this request is fulfilled?")) {
+                try {
+                    const response = await fetch(`${API_URL}/requests/${requestId}`, {
+                        method: 'PUT',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify({ status: 'Fulfilled' })
+                    });
+
+                    if (response.ok) {
+                        showAlert('Request marked as fulfilled!', 'success');
+                        loadRequests();
+                    } else {
+                        showAlert('Failed to update request', 'error');
+                    }
+                } catch (e) {
+                    showAlert('Connection error', 'error');
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

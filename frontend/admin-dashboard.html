@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - BloodConnect</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .stat-card {
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            color: var(--dark-text);
+            font-size: 1.2rem;
+        }
+
+        .stat-card .num {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary-red);
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="nav-brand"><i class="fa-solid fa-droplet"></i> BloodConnect Admin</a>
+        <ul class="nav-links" id="nav-links"></ul> <!-- Handled by JS -->
+    </nav>
+
+    <div class="container">
+        <h2
+            style="color: var(--primary-red); margin-bottom: 2rem; border-bottom: 2px solid var(--gray-light); padding-bottom:1rem;">
+            System Administration Dashboard</h2>
+
+        <div id="alert-box" class="alert"></div>
+
+        <div class="dashboard-grid" style="margin-bottom: 3rem;">
+            <div class="card stat-card">
+                <h3>Total Donors</h3>
+                <div class="num" id="stat-donors">0</div>
+            </div>
+            <div class="card stat-card">
+                <h3>Registered Hospitals</h3>
+                <div class="num" id="stat-hospitals">0</div>
+            </div>
+            <div class="card stat-card">
+                <h3>Blood Requests Processed</h3>
+                <div class="num" id="stat-requests">0</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>All Registered Users</h3>
+            <div style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>User ID</th>
+                            <th>Username</th>
+                            <th>Role</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-list">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Smart Emergency Blood & Donor Management System.</p>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            requireRole(['admin']);
+            loadStats();
+            loadUsers();
+        });
+
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_URL}/admin/stats`, { headers: getAuthHeaders() });
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('stat-donors').textContent = data.donors;
+                    document.getElementById('stat-hospitals').textContent = data.hospitals;
+                    document.getElementById('stat-requests').textContent = data.requests;
+                }
+            } catch (error) {
+                console.error("Stats load failed", error);
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetch(`${API_URL}/admin/users`, { headers: getAuthHeaders() });
+                if (response.ok) {
+                    const users = await response.json();
+                    const tbody = document.getElementById('users-list');
+                    tbody.innerHTML = '';
+
+                    users.forEach(user => {
+                        let roleBadge = 'badge-success';
+                        if (user.role === 'admin') roleBadge = 'badge-danger';
+                        if (user.role === 'hospital') roleBadge = 'badge-warning';
+
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${user.id}</td>
+                                <td><strong>${user.username}</strong></td>
+                                <td><span class="badge ${roleBadge}" style="text-transform: uppercase;">${user.role}</span></td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (error) {
+                showAlert('Failed to load users', 'error');
+            }
+        }
+    </script>
+</body>
+
+</html>
